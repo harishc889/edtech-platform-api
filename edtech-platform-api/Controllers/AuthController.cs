@@ -22,21 +22,14 @@ namespace edtech_platform_api.Controllers
         [Authorize]
         public async Task<IActionResult> Logout()
         {
-            try
+            var sessionId = User.FindFirst("sessionId")?.Value;
+            if (string.IsNullOrWhiteSpace(sessionId))
             {
-                var sessionId = User.FindFirst("sessionId")?.Value;
-                if (string.IsNullOrWhiteSpace(sessionId))
-                {
-                    return Unauthorized(new { error = "Missing sessionId claim" });
-                }
+                return Unauthorized(new { error = "Missing sessionId claim" });
+            }
 
-                await _authService.LogoutAsync(sessionId);
-                return NoContent();
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { error = "An unexpected error occurred." });
-            }
+            await _authService.LogoutAsync(sessionId);
+            return NoContent();
         }
 
         // Example of a protected endpoint (requires valid JWT)
@@ -56,62 +49,34 @@ namespace edtech_platform_api.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            // [ApiController] will automatically validate ModelState and return 400 if invalid.
-            try
-            {
-                var user = await _authService.RegisterAsync(dto.Name, dto.Email, dto.Password);
+            
+            var user = await _authService.RegisterAsync(dto.Name, dto.Email, dto.Password);
 
-                // Return minimal user info (no password hash)
-                var result = new
-                {
-                    id = user.Id,
-                    name = user.Name,
-                    email = user.Email,
-                    createdAt = user.CreatedAt
-                };
+            // Return minimal user info (no password hash)
+            var result = new
+            {
+                id = user.Id,
+                name = user.Name,
+                email = user.Email,
+                createdAt = user.CreatedAt
+            };
 
-                return Created(string.Empty, result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                // e.g., email already in use
-                return Conflict(new { error = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { error = "An unexpected error occurred." });
-            }
+            return Created(string.Empty, result);
+            
         }
 
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            try
-            {
+            
                 // Try to capture device info and client IP
                 var device = Request.Headers.ContainsKey("User-Agent") ? Request.Headers["User-Agent"].ToString() : null;
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
                 var token = await _authService.LoginAsync(dto.Email, dto.Password, device, ip);
                 return Ok(new { token });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { error = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = "An unexpected error occurred." });
-            }
+            
         }
     }
 }

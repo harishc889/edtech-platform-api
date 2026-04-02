@@ -25,19 +25,29 @@ namespace edtech_platform_api.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception occurred while processing request.");
-
-                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                context.Response.ContentType = "application/json";
-
-                var payload = new
-                {
-                    error = "An unexpected error occurred."
-                };
-
-                var json = JsonSerializer.Serialize(payload);
-                await context.Response.WriteAsync(json);
+                await HandleExceptionAsync(context, ex);
             }
+        }
+
+        private async Task HandleExceptionAsync(HttpContext context, Exception exception)
+        {
+            var (statusCode, message) = exception switch
+            {
+                UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, exception.Message),
+                InvalidOperationException => (StatusCodes.Status409Conflict, exception.Message),
+                ArgumentException => (StatusCodes.Status400BadRequest, exception.Message),
+                KeyNotFoundException => (StatusCodes.Status404NotFound, exception.Message),
+                _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
+            };
+
+            _logger.LogError(exception, "Exception occurred: {Message}", exception.Message);
+
+            context.Response.StatusCode = statusCode;
+            context.Response.ContentType = "application/json";
+
+            var payload = new { error = message };
+            var json = JsonSerializer.Serialize(payload);
+            await context.Response.WriteAsync(json);
         }
     }
 }
