@@ -93,7 +93,11 @@ namespace edtech_platform_api.Controllers
         {
             try
             {
-                var token = await _authService.LoginAsync(dto.Email, dto.Password);
+                // Try to capture device info and client IP
+                var device = Request.Headers.ContainsKey("User-Agent") ? Request.Headers["User-Agent"].ToString() : null;
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                var token = await _authService.LoginAsync(dto.Email, dto.Password, device, ip);
                 return Ok(new { token });
             }
             catch (UnauthorizedAccessException ex)
