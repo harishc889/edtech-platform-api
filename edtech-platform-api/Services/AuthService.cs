@@ -92,7 +92,7 @@ namespace edtech_platform_api.Services
             _db.UserSessions.Add(newSession);
             await _db.SaveChangesAsync();
 
-            var token = _tokenService.GenerateToken(user.Id.ToString(), newSession.SessionId);
+            var token = _tokenService.GenerateToken(user.Id.ToString(), newSession.SessionId, user.Role);
             return token;
         }
 
