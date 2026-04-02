@@ -47,7 +47,7 @@ namespace edtech_platform_api.Services
             return user;
         }
 
-        public async Task<string> LoginAsync(string email, string password)
+        public async Task<string> LoginAsync(string email, string password, string? deviceName = null, string? ipAddress = null)
         {
             if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Email is required", nameof(email));
             if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Password is required", nameof(password));
@@ -84,7 +84,9 @@ namespace edtech_platform_api.Services
                 UserId = user.Id,
                 SessionId = Guid.NewGuid().ToString(),
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                DeviceName = string.IsNullOrWhiteSpace(deviceName) ? "Unknown" : deviceName,
+                IPAddress = string.IsNullOrWhiteSpace(ipAddress) ? "Unknown" : ipAddress
             };
 
             _db.UserSessions.Add(newSession);
