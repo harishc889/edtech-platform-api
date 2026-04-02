@@ -21,7 +21,7 @@ namespace edtech_platform_api.Services
             _audience = configuration["Jwt:Audience"] ?? throw new ArgumentException("JWT audience not configured (Jwt:Audience)");
         }
 
-        public string GenerateToken(string userId, string sessionId)
+        public string GenerateToken(string userId, string sessionId, string role = "User")
         {
             if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
             if (string.IsNullOrWhiteSpace(sessionId)) throw new ArgumentNullException(nameof(sessionId));
@@ -32,7 +32,8 @@ namespace edtech_platform_api.Services
             var claims = new[]
             {
                 new Claim("userId", userId),
-                new Claim("sessionId", sessionId)
+                new Claim("sessionId", sessionId),
+                new Claim(ClaimTypes.Role, role)
             };
 
             var token = new JwtSecurityToken(

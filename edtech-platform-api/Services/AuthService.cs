@@ -52,7 +52,7 @@ namespace edtech_platform_api.Services
             if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Email is required", nameof(email));
             if (string.IsNullOrWhiteSpace(password)) throw new ArgumentException("Password is required", nameof(password));
 
-            var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == email);
+            var user = await _db.Users.SingleOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
             if (user == null)
             {
                 throw new UnauthorizedAccessException("Invalid credentials");
@@ -92,7 +92,7 @@ namespace edtech_platform_api.Services
             _db.UserSessions.Add(newSession);
             await _db.SaveChangesAsync();
 
-            var token = _tokenService.GenerateToken(user.Id.ToString(), newSession.SessionId);
+            var token = _tokenService.GenerateToken(user.Id.ToString(), newSession.SessionId, user.Role);
             return token;
         }
 

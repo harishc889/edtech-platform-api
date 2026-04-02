@@ -25,6 +25,10 @@ namespace edtech_platform_api.Models
         public string PasswordHash { get; set; } = null!;
 
         [Required]
+        [MaxLength(20)]
+        public string Role { get; set; } = "User";
+
+        [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

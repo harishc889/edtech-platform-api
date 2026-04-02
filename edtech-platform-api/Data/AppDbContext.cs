@@ -12,6 +12,8 @@ namespace edtech_platform_api.Data
 
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<UserSession> UserSessions { get; set; } = null!;
+        public DbSet<Course> Courses { get; set; } = null!;
+        public DbSet<Batch> Batches { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -32,6 +34,11 @@ namespace edtech_platform_api.Data
                 entity.Property(u => u.PasswordHash)
                       .IsRequired()
                       .HasMaxLength(512);
+
+                entity.Property(u => u.Role)
+                      .IsRequired()
+                      .HasMaxLength(20)
+                      .HasDefaultValue("User");
 
                 // Configure unique index on Email (fluent API)
                 entity.HasIndex(u => u.Email).IsUnique();
@@ -65,6 +72,60 @@ namespace edtech_platform_api.Data
                       .WithMany()
                       .HasForeignKey(s => s.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Course>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+
+                entity.Property(c => c.Title)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                entity.Property(c => c.Description)
+                      .HasMaxLength(2000);
+
+                entity.Property(c => c.Price)
+                      .IsRequired()
+                      .HasColumnType("decimal(18,2)");
+
+                entity.Property(c => c.ThumbnailUrl)
+                      .HasMaxLength(500);
+
+                entity.Property(c => c.IsPublished)
+                      .IsRequired()
+                      .HasDefaultValue(false);
+
+                entity.Property(c => c.CreatedAt)
+                      .IsRequired()
+                      .HasDefaultValueSql("now()");
+
+                // Configure one-to-many relationship: Course -> Batches
+                entity.HasMany(c => c.Batches)
+                      .WithOne(b => b.Course)
+                      .HasForeignKey(b => b.CourseId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Batch>(entity =>
+            {
+                entity.HasKey(b => b.Id);
+
+                entity.Property(b => b.StartDate)
+                      .IsRequired();
+
+                entity.Property(b => b.MentorName)
+                      .HasMaxLength(100);
+
+                entity.Property(b => b.Capacity)
+                      .IsRequired();
+
+                entity.Property(b => b.CreatedAt)
+                      .IsRequired()
+                      .HasDefaultValueSql("now()");
+
+                entity.Property(b => b.CourseId)
+                      .IsRequired();
             });
         }
     }
