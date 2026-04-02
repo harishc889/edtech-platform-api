@@ -108,7 +108,7 @@ namespace edtech_platform_api.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return StatusCode(500, new { error = "An unexpected error occurred." });
             }
