@@ -11,6 +11,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Configure CORS for Next.js frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("NextJsPolicy", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3000",  // Next.js dev server
+                "https://yourdomain.com"  // Production domain
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();  // Required for cookies
+    });
+});
+
 // Configure PostgreSQL with EF Core
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?? builder.Configuration["ConnectionStrings:DefaultConnection"];
@@ -42,6 +57,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
             ClockSkew = TimeSpan.Zero
         };
+
+        // Read JWT from cookie if not in Authorization header
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // Check for token in cookie if not in header
+                if (string.IsNullOrEmpty(context.Token))
+                {
+                    context.Token = context.Request.Cookies["auth_token"];
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 
@@ -59,6 +88,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Enable CORS - Must be before authentication
+app.UseCors("NextJsPolicy");
 
 // Exception handling middleware should be early in the pipeline
 app.UseMiddleware<ExceptionHandlingMiddleware>();
