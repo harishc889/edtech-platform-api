@@ -14,6 +14,7 @@ namespace edtech_platform_api.Data
         public DbSet<UserSession> UserSessions { get; set; } = null!;
         public DbSet<Course> Courses { get; set; } = null!;
         public DbSet<Batch> Batches { get; set; } = null!;
+        public DbSet<Enrollment> Enrollments { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -126,6 +127,36 @@ namespace edtech_platform_api.Data
 
                 entity.Property(b => b.CourseId)
                       .IsRequired();
+            });
+
+            modelBuilder.Entity<Enrollment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.UserId)
+                      .IsRequired();
+
+                entity.Property(e => e.BatchId)
+                      .IsRequired();
+
+                entity.Property(e => e.EnrolledAt)
+                      .IsRequired()
+                      .HasDefaultValueSql("now()");
+
+                // Configure unique index on UserId + BatchId to prevent duplicate enrollments
+                entity.HasIndex(e => new { e.UserId, e.BatchId })
+                      .IsUnique();
+
+                // Configure relationships
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Batch)
+                      .WithMany()
+                      .HasForeignKey(e => e.BatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }
