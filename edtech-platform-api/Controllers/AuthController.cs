@@ -29,6 +29,16 @@ namespace edtech_platform_api.Controllers
             }
 
             await _authService.LogoutAsync(sessionId);
+
+            // Clear the auth cookie
+            Response.Cookies.Delete("auth_token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Path = "/"
+            });
+
             return NoContent();
         }
 
@@ -69,14 +79,29 @@ namespace edtech_platform_api.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            
-                // Try to capture device info and client IP
-                var device = Request.Headers.ContainsKey("User-Agent") ? Request.Headers["User-Agent"].ToString() : null;
-                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var device = Request.Headers.ContainsKey("User-Agent") ? Request.Headers["User-Agent"].ToString() : null;
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
 
-                var token = await _authService.LoginAsync(dto.Email, dto.Password, device, ip);
-                return Ok(new { token });
-            
+            var token = await _authService.LoginAsync(dto.Email, dto.Password, device, ip);
+
+            // Set JWT in HTTP-only cookie
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,  // Prevents JavaScript access (XSS protection)
+                Secure = true,    // HTTPS only
+                SameSite = SameSiteMode.Strict,  // CSRF protection
+                Expires = DateTimeOffset.UtcNow.AddDays(7),  // Same as JWT expiry
+                Path = "/"
+            };
+
+            Response.Cookies.Append("auth_token", token, cookieOptions);
+
+            // Return token in body for mobile apps or other clients
+            return Ok(new 
+            { 
+                token,
+                message = "Login successful. Token set in cookie."
+            });
         }
     }
 }
