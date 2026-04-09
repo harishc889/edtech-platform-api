@@ -15,6 +15,7 @@ namespace edtech_platform_api.Data
         public DbSet<Course> Courses { get; set; } = null!;
         public DbSet<Batch> Batches { get; set; } = null!;
         public DbSet<Enrollment> Enrollments { get; set; } = null!;
+        public DbSet<Payment> Payments { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -157,6 +158,65 @@ namespace edtech_platform_api.Data
                       .WithMany()
                       .HasForeignKey(e => e.BatchId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.HasKey(p => p.Id);
+
+                entity.Property(p => p.UserId)
+                      .IsRequired();
+
+                entity.Property(p => p.CourseId)
+                      .IsRequired();
+
+                entity.Property(p => p.Amount)
+                      .IsRequired()
+                      .HasColumnType("decimal(18,2)");
+
+                entity.Property(p => p.Status)
+                      .IsRequired()
+                      .HasConversion<string>()  // Store enum as string in DB
+                      .HasMaxLength(20);
+
+                entity.Property(p => p.RazorpayOrderId)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(p => p.RazorpayPaymentId)
+                      .HasMaxLength(100);
+
+                entity.Property(p => p.RazorpaySignature)
+                      .HasMaxLength(500);
+
+                entity.Property(p => p.Currency)
+                      .IsRequired()
+                      .HasMaxLength(10)
+                      .HasDefaultValue("INR");
+
+                entity.Property(p => p.CreatedAt)
+                      .IsRequired()
+                      .HasDefaultValueSql("now()");
+
+                // Create index on RazorpayOrderId for faster lookups
+                entity.HasIndex(p => p.RazorpayOrderId);
+
+                // Create index on RazorpayPaymentId for webhook verification
+                entity.HasIndex(p => p.RazorpayPaymentId);
+
+                // Create composite index for user payment history queries
+                entity.HasIndex(p => new { p.UserId, p.Status });
+
+                // Configure relationships
+                entity.HasOne(p => p.User)
+                      .WithMany()
+                      .HasForeignKey(p => p.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);  // Don't delete user if they have payments
+
+                entity.HasOne(p => p.Course)
+                      .WithMany()
+                      .HasForeignKey(p => p.CourseId)
+                      .OnDelete(DeleteBehavior.Restrict);  // Don't delete course if it has payments
             });
         }
     }
