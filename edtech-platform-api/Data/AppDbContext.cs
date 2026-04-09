@@ -16,6 +16,7 @@ namespace edtech_platform_api.Data
         public DbSet<Batch> Batches { get; set; } = null!;
         public DbSet<Enrollment> Enrollments { get; set; } = null!;
         public DbSet<Payment> Payments { get; set; } = null!;
+        public DbSet<LiveSession> LiveSessions { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -217,6 +218,66 @@ namespace edtech_platform_api.Data
                       .WithMany()
                       .HasForeignKey(p => p.CourseId)
                       .OnDelete(DeleteBehavior.Restrict);  // Don't delete course if it has payments
+            });
+
+            modelBuilder.Entity<LiveSession>(entity =>
+            {
+                entity.HasKey(ls => ls.Id);
+
+                entity.Property(ls => ls.BatchId)
+                      .IsRequired();
+
+                entity.Property(ls => ls.Title)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                entity.Property(ls => ls.MeetingUrl)
+                      .IsRequired()
+                      .HasMaxLength(500);
+
+                entity.Property(ls => ls.MeetingId)
+                      .IsRequired()
+                      .HasMaxLength(100);
+
+                entity.Property(ls => ls.HostUrl)
+                      .HasMaxLength(500);
+
+                entity.Property(ls => ls.Provider)
+                      .IsRequired()
+                      .HasMaxLength(50)
+                      .HasDefaultValue("Zoom");
+
+                entity.Property(ls => ls.StartTime)
+                      .IsRequired();
+
+                entity.Property(ls => ls.DurationMinutes)
+                      .IsRequired();
+
+                entity.Property(ls => ls.Password)
+                      .HasMaxLength(500);
+
+                entity.Property(ls => ls.IsActive)
+                      .IsRequired()
+                      .HasDefaultValue(true);
+
+                entity.Property(ls => ls.CreatedAt)
+                      .IsRequired()
+                      .HasDefaultValueSql("now()");
+
+                // Create index on MeetingId for quick lookups
+                entity.HasIndex(ls => ls.MeetingId);
+
+                // Create composite index for batch session queries
+                entity.HasIndex(ls => new { ls.BatchId, ls.StartTime });
+
+                // Create index on provider for filtering
+                entity.HasIndex(ls => ls.Provider);
+
+                // Configure relationship
+                entity.HasOne(ls => ls.Batch)
+                      .WithMany()
+                      .HasForeignKey(ls => ls.BatchId)
+                      .OnDelete(DeleteBehavior.Cascade);  // Delete sessions if batch is deleted
             });
         }
     }

@@ -40,6 +40,7 @@ builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<BatchService>();
 builder.Services.AddScoped<EnrollmentService>();
 builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<LiveSessionService>();
 
 // Configure JWT authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new Exception("Jwt:Secret is not configured");
