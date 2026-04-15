@@ -8,6 +8,9 @@ using edtech_platform_api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // Add services to the container.
 builder.Services.AddControllers();
 
@@ -18,7 +21,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:3000",  // Next.js dev server
-                "https://yourdomain.com"  // Production domain
+                "https://labimacademy.vercel.app"  // Production domain
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -80,6 +83,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
 
 var app = builder.Build();
 
