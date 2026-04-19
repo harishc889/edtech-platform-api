@@ -5,11 +5,19 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using edtech_platform_api.Middleware;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+var portEnv = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(portEnv))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{portEnv}");
+}
+else if (!builder.Environment.IsDevelopment())
+{
+    builder.WebHost.UseUrls("http://0.0.0.0:8080");
+}
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -82,7 +90,21 @@ builder.Services.AddAuthorization();
 
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "JWT: paste your access token (Swagger sends Authorization: Bearer <token>)."
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 
 
 
@@ -98,7 +120,10 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Enable CORS - Must be before authentication
 app.UseCors("NextJsPolicy");
