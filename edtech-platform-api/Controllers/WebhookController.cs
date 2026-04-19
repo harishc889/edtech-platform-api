@@ -35,8 +35,12 @@ namespace edtech_platform_api.Controllers
                 // Get signature from header
                 var signature = Request.Headers["X-Razorpay-Signature"].ToString();
                 var secret = _config["Razorpay:WebhookSecret"];
+                if (string.IsNullOrWhiteSpace(secret))
+                {
+                    _logger.LogWarning("Razorpay:WebhookSecret is not configured; rejecting webhook.");
+                    return Unauthorized(new { error = "Webhook not configured" });
+                }
 
-                // Verify signature
                 if (!VerifySignature(webhookBody, signature, secret))
                 {
                     return Unauthorized(new { error = "Invalid signature" });

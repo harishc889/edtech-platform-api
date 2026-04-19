@@ -1,7 +1,12 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
+using edtech_platform_api.Configuration;
+using edtech_platform_api.Infrastructure;
 using edtech_platform_api.Models.Dtos;
 using edtech_platform_api.Services;
 
@@ -12,10 +17,29 @@ namespace edtech_platform_api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AuthService _authService;
+        private readonly CookieAuthSettings _cookieAuth;
+        private readonly SecuritySettings _security;
 
-        public AuthController(AuthService authService)
+        public AuthController(
+            AuthService authService,
+            IOptions<CookieAuthSettings> cookieAuth,
+            IOptions<SecuritySettings> security)
         {
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
+            _cookieAuth = cookieAuth.Value;
+            _security = security.Value;
+        }
+
+        /// <summary>
+        /// Returns a CSRF request token and sets the antiforgery cookie. Required before payment POSTs when Security:RequirePaymentCsrf is true.
+        /// </summary>
+        [HttpGet("csrf")]
+        [Authorize]
+        [IgnoreAntiforgeryToken]
+        public IActionResult GetCsrfToken([FromServices] IAntiforgery antiforgery)
+        {
+            var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+            return Ok(new { csrfToken = tokens.RequestToken });
         }
 
         [HttpPost("logout")]
@@ -30,24 +54,16 @@ namespace edtech_platform_api.Controllers
 
             await _authService.LogoutAsync(sessionId);
 
-            // Clear the auth cookie
-            Response.Cookies.Delete("auth_token", new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Path = "/"
-            });
+            var deleteOpts = CookieAuthHelper.CreateAuthCookieOptions(_cookieAuth);
+            Response.Cookies.Delete("auth_token", deleteOpts);
 
             return NoContent();
         }
 
-        // Example of a protected endpoint (requires valid JWT)
         [HttpGet("me")]
         [Authorize]
         public IActionResult Me()
         {
-            // return the claims for demonstration
             return Ok(new
             {
                 user = User.Identity?.Name,
@@ -59,10 +75,8 @@ namespace edtech_platform_api.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            
             var user = await _authService.RegisterAsync(dto.Name, dto.Email, dto.Password);
 
-            // Return minimal user info (no password hash)
             var result = new
             {
                 id = user.Id,
@@ -72,11 +86,11 @@ namespace edtech_platform_api.Controllers
             };
 
             return Created(string.Empty, result);
-            
         }
 
         [HttpPost("login")]
         [AllowAnonymous]
+        [EnableRateLimiting("auth-login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var device = Request.Headers.ContainsKey("User-Agent") ? Request.Headers["User-Agent"].ToString() : null;
@@ -84,24 +98,22 @@ namespace edtech_platform_api.Controllers
 
             var token = await _authService.LoginAsync(dto.Email, dto.Password, device, ip);
 
-            // Set JWT in HTTP-only cookie
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,  // Prevents JavaScript access (XSS protection)
-                Secure = true,    // HTTPS only
-                SameSite = SameSiteMode.Strict,  // CSRF protection
-                Expires = DateTimeOffset.UtcNow.AddDays(7),  // Same as JWT expiry
-                Path = "/"
-            };
+            var cookieOptions = CookieAuthHelper.CreateAuthCookieOptions(
+                _cookieAuth,
+                DateTimeOffset.UtcNow.AddDays(7));
 
             Response.Cookies.Append("auth_token", token, cookieOptions);
 
-            // Return token in body for mobile apps or other clients
-            return Ok(new 
-            { 
-                token,
-                message = "Login successful. Token set in cookie."
-            });
+            if (_security.ExposeTokenInLoginResponse)
+            {
+                return Ok(new
+                {
+                    token,
+                    message = "Login successful. Token set in cookie."
+                });
+            }
+
+            return Ok(new { message = "Login successful. Token set in cookie." });
         }
     }
 }
