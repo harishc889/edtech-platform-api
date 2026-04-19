@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using edtech_platform_api.Models.Dtos;
 using edtech_platform_api.Services;
 
@@ -10,6 +11,7 @@ namespace edtech_platform_api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
+    [EnableRateLimiting("payment")]
     public class PaymentController : ControllerBase
     {
         private readonly PaymentService _paymentService;
