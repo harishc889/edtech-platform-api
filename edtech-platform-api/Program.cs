@@ -19,6 +19,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<CookieAuthSettings>(builder.Configuration.GetSection(CookieAuthSettings.SectionName));
 builder.Services.Configure<SecuritySettings>(builder.Configuration.GetSection(SecuritySettings.SectionName));
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection(SmtpSettings.SectionName));
+builder.Services.Configure<PasswordResetSettings>(builder.Configuration.GetSection(PasswordResetSettings.SectionName));
 
 var forwardHeadersEnabled = builder.Configuration.GetValue("ForwardedHeaders:Enabled", false);
 if (forwardHeadersEnabled)
@@ -82,6 +84,26 @@ builder.Services.AddRateLimiter(options =>
         o.PermitLimit = 12;
         o.QueueLimit = 0;
     });
+    options.AddPolicy("auth-forgot-password", context =>
+    {
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            Window = TimeSpan.FromMinutes(10),
+            PermitLimit = 5,
+            QueueLimit = 0
+        });
+    });
+    options.AddPolicy("auth-reset-password", context =>
+    {
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            Window = TimeSpan.FromMinutes(10),
+            PermitLimit = 10,
+            QueueLimit = 0
+        });
+    });
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -91,6 +113,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<BatchService>();
