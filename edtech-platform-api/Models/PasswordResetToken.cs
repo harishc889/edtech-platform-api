@@ -27,7 +27,7 @@ public class PasswordResetToken
     [Required]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime? UsedAt { get; set; }
+    public DateTime? TokenUsedAt { get; set; }
 
     [ForeignKey(nameof(UserId))]
     public User User { get; set; } = null!;
