@@ -17,6 +17,7 @@ namespace edtech_platform_api.Data
         public DbSet<Enrollment> Enrollments { get; set; } = null!;
         public DbSet<Payment> Payments { get; set; } = null!;
         public DbSet<LiveSession> LiveSessions { get; set; } = null!;
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -278,6 +279,36 @@ namespace edtech_platform_api.Data
                       .WithMany()
                       .HasForeignKey(ls => ls.BatchId)
                       .OnDelete(DeleteBehavior.Cascade);  // Delete sessions if batch is deleted
+            });
+
+            modelBuilder.Entity<PasswordResetToken>(entity =>
+            {
+                entity.HasKey(t => t.Id);
+
+                entity.Property(t => t.TokenHash)
+                      .IsRequired()
+                      .HasMaxLength(128);
+
+                entity.Property(t => t.ExpiresAt)
+                      .IsRequired();
+
+                entity.Property(t => t.IsUsed)
+                      .IsRequired()
+                      .HasDefaultValue(false);
+
+                entity.Property(t => t.CreatedAt)
+                      .IsRequired()
+                      .HasDefaultValueSql("now()");
+
+                entity.HasIndex(t => t.TokenHash)
+                      .IsUnique();
+
+                entity.HasIndex(t => new { t.UserId, t.IsUsed, t.ExpiresAt });
+
+                entity.HasOne(t => t.User)
+                      .WithMany()
+                      .HasForeignKey(t => t.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

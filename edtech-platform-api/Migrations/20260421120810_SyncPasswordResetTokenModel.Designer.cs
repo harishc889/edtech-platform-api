@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using edtech_platform_api.Data;
@@ -11,9 +12,11 @@ using edtech_platform_api.Data;
 namespace edtech_platform_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260421120810_SyncPasswordResetTokenModel")]
+    partial class SyncPasswordResetTokenModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,7 +58,7 @@ namespace edtech_platform_api.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Batches", (string)null);
+                    b.ToTable("Batches");
                 });
 
             modelBuilder.Entity("edtech_platform_api.Models.Course", b =>
@@ -94,7 +97,7 @@ namespace edtech_platform_api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Courses", (string)null);
+                    b.ToTable("Courses");
                 });
 
             modelBuilder.Entity("edtech_platform_api.Models.Enrollment", b =>
@@ -123,7 +126,7 @@ namespace edtech_platform_api.Migrations
                     b.HasIndex("UserId", "BatchId")
                         .IsUnique();
 
-                    b.ToTable("Enrollments", (string)null);
+                    b.ToTable("Enrollments");
                 });
 
             modelBuilder.Entity("edtech_platform_api.Models.LiveSession", b =>
@@ -194,7 +197,7 @@ namespace edtech_platform_api.Migrations
 
                     b.HasIndex("BatchId", "StartTime");
 
-                    b.ToTable("LiveSessions", (string)null);
+                    b.ToTable("LiveSessions");
                 });
 
             modelBuilder.Entity("edtech_platform_api.Models.PasswordResetToken", b =>
@@ -236,7 +239,7 @@ namespace edtech_platform_api.Migrations
 
                     b.HasIndex("UserId", "IsUsed", "ExpiresAt");
 
-                    b.ToTable("PasswordResetTokens", (string)null);
+                    b.ToTable("PasswordResetTokens");
                 });
 
             modelBuilder.Entity("edtech_platform_api.Models.Payment", b =>
@@ -299,7 +302,7 @@ namespace edtech_platform_api.Migrations
 
                     b.HasIndex("UserId", "Status");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("edtech_platform_api.Models.User", b =>
@@ -342,7 +345,7 @@ namespace edtech_platform_api.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("edtech_platform_api.Models.UserSession", b =>
@@ -384,7 +387,7 @@ namespace edtech_platform_api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserSessions", (string)null);
+                    b.ToTable("UserSessions");
                 });
 
             modelBuilder.Entity("edtech_platform_api.Models.Batch", b =>

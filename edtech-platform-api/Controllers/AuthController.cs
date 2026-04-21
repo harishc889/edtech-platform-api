@@ -1,4 +1,6 @@
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
@@ -114,6 +116,106 @@ namespace edtech_platform_api.Controllers
             }
 
             return Ok(new { message = "Login successful. Token set in cookie." });
+        }
+
+        /// <summary>
+        /// Sends reset instructions when the account exists.
+        /// </summary>
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        [EnableRateLimiting("auth-forgot-password")]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto dto)
+        {
+            if (!IsValidForgotPasswordRequest(dto))
+            {
+                return BadRequest(new MessageResponseDto
+                {
+                    Message = "Invalid email address."
+                });
+            }
+
+            try
+            {
+                await _authService.ForgotPasswordAsync(dto.Email!);
+                return Ok(new MessageResponseDto
+                {
+                    Message = "If an account exists, reset instructions have been sent."
+                });
+            }
+            catch
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new MessageResponseDto
+                {
+                    Message = "Unable to process request right now. Please try again later."
+                });
+            }
+        }
+
+        /// <summary>
+        /// Resets user password using one-time reset token.
+        /// </summary>
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        [EnableRateLimiting("auth-reset-password")]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(MessageResponseDto), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto dto)
+        {
+            if (!IsValidResetPasswordRequest(dto))
+            {
+                return BadRequest(new MessageResponseDto
+                {
+                    Message = "Invalid reset token or password."
+                });
+            }
+
+            try
+            {
+                await _authService.ResetPasswordAsync(dto.Token!, dto.NewPassword!);
+                return Ok(new MessageResponseDto
+                {
+                    Message = "Password has been reset successfully."
+                });
+            }
+            catch (ArgumentException)
+            {
+                return BadRequest(new MessageResponseDto
+                {
+                    Message = "Invalid reset token or password."
+                });
+            }
+            catch
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new MessageResponseDto
+                {
+                    Message = "Unable to process request right now. Please try again later."
+                });
+            }
+        }
+
+        private static bool IsValidForgotPasswordRequest(ForgotPasswordRequestDto? dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Email))
+            {
+                return false;
+            }
+
+            var emailAttribute = new EmailAddressAttribute();
+            return emailAttribute.IsValid(dto.Email.Trim());
+        }
+
+        private static bool IsValidResetPasswordRequest(ResetPasswordRequestDto? dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Token) || string.IsNullOrWhiteSpace(dto.NewPassword))
+            {
+                return false;
+            }
+
+            return dto.NewPassword.Trim().Length >= 8;
         }
     }
 }
