@@ -178,7 +178,15 @@ namespace edtech_platform_api.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed sending forgot-password email for userId {UserId}.", user.Id);
+                _logger.LogError(ex,
+                    "Failed sending forgot-password email for userId {UserId}. " +
+                    "Exception Type: {ExceptionType}, " +
+                    "Message: {ExceptionMessage}, " +
+                    "StackTrace: {StackTrace}",
+                    user.Id,
+                    ex.GetType().Name,
+                    ex.Message,
+                    ex.StackTrace);
                 throw;
             }
         }
