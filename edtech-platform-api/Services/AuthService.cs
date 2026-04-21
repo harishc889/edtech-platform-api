@@ -152,7 +152,7 @@ namespace edtech_platform_api.Services
             foreach (var token in existingTokens)
             {
                 token.IsUsed = true;
-                token.UsedAt = now;
+                token.TokenUsedAt = now;
             }
 
             var resetToken = new PasswordResetToken
@@ -216,7 +216,7 @@ namespace edtech_platform_api.Services
             user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
 
             resetToken.IsUsed = true;
-            resetToken.UsedAt = now;
+            resetToken.TokenUsedAt = now;
 
             var activeTokens = await _db.PasswordResetTokens
                 .Where(t => t.UserId == user.Id && !t.IsUsed && t.ExpiresAt > now)
@@ -225,7 +225,7 @@ namespace edtech_platform_api.Services
             foreach (var token in activeTokens)
             {
                 token.IsUsed = true;
-                token.UsedAt = now;
+                token.TokenUsedAt = now;
             }
 
             await _db.SaveChangesAsync();

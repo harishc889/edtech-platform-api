@@ -300,6 +300,9 @@ namespace edtech_platform_api.Data
                       .IsRequired()
                       .HasDefaultValueSql("now()");
 
+                entity.Property(t => t.TokenUsedAt)
+                      .IsRequired(false);
+
                 entity.HasIndex(t => t.TokenHash)
                       .IsUnique();
 
