@@ -113,7 +113,18 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 builder.Services.AddSingleton<TokenService>();
-builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+// Configure Email Sender based on provider
+var emailProvider = builder.Configuration["EmailProvider"] ?? "Smtp";
+if (emailProvider == "SendGrid")
+{
+    builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
+}
+else
+{
+    builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+}
+
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<CourseService>();
 builder.Services.AddScoped<BatchService>();
